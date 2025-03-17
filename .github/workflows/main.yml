@@ -30,7 +30,7 @@ jobs:
           echo "NEW_RELEASE_VERSION=$CLEAN_VERSION" >> $GITHUB_ENV
           echo "NEW_DEVELOP_VERSION=$MINOR_VERSION" >> $GITHUB_ENV
           echo "Релизная версия: $CLEAN_VERSION"
-          echo "Новая версия в develop: $MINOR_VERSION"
+          echo "Новая версия в main: $MINOR_VERSION"
 
       - name: Обновить версию в release/*
         run: |
@@ -41,11 +41,11 @@ jobs:
           git commit -m "Обновление версии для release: ${{ env.NEW_RELEASE_VERSION }}"
           git push origin HEAD
 
-      - name: Переключиться на develop и обновить версию
+      - name: Переключиться на main и обновить версию
         run: |
-          git checkout develop
-          git pull origin develop
+          git checkout main
+          git pull origin main
           mvn versions:set -DnewVersion=${{ env.NEW_DEVELOP_VERSION }} -DgenerateBackupPoms=false
           git add pom.xml
-          git commit -m "Инкремент версии до ${{ env.NEW_DEVELOP_VERSION }} в develop"
-          git push origin develop
+          git commit -m "Инкремент версии до ${{ env.NEW_DEVELOP_VERSION }} в main"
+          git push origin main
