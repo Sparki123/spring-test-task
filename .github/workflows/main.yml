@@ -1,0 +1,51 @@
+name: Bump Version on Release Branch
+
+on:
+  create:
+    branches:
+      - release/*
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout репозитория
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Нужно для корректной работы с git
+
+      - name: Настроить Java и Maven
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'  # Замени на нужную версию
+
+      - name: Определить текущую и новую версию
+        id: version
+        run: |
+          CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          CLEAN_VERSION=$(echo $CURRENT_VERSION | sed 's/-SNAPSHOT//')  # Убираем SNAPSHOT
+          MINOR_VERSION=$(echo $CLEAN_VERSION | awk -F. -v OFS=. '{$2 += 1; $3 = 0; print}')"-SNAPSHOT"
+          echo "NEW_RELEASE_VERSION=$CLEAN_VERSION" >> $GITHUB_ENV
+          echo "NEW_DEVELOP_VERSION=$MINOR_VERSION" >> $GITHUB_ENV
+          echo "Релизная версия: $CLEAN_VERSION"
+          echo "Новая версия в develop: $MINOR_VERSION"
+
+      - name: Обновить версию в release/*
+        run: |
+          mvn versions:set -DnewVersion=${{ env.NEW_RELEASE_VERSION }} -DgenerateBackupPoms=false
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add pom.xml
+          git commit -m "Обновление версии для release: ${{ env.NEW_RELEASE_VERSION }}"
+          git push origin HEAD
+
+      - name: Переключиться на develop и обновить версию
+        run: |
+          git checkout develop
+          git pull origin develop
+          mvn versions:set -DnewVersion=${{ env.NEW_DEVELOP_VERSION }} -DgenerateBackupPoms=false
+          git add pom.xml
+          git commit -m "Инкремент версии до ${{ env.NEW_DEVELOP_VERSION }} в develop"
+          git push origin develop
